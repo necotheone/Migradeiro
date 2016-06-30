@@ -39,8 +39,8 @@
             // 
             // serviceInstaller1
             // 
-            this.serviceInstaller1.Description = "Servicio de Migradeiro";
-            this.serviceInstaller1.ServiceName = "Migradeiro";
+            this.serviceInstaller1.Description = "Servicio de recolección de datos del HLR de Vigo";
+            this.serviceInstaller1.ServiceName = "Migra2";
             // 
             // ProjectInstaller
             // 
