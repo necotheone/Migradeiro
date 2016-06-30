@@ -77,7 +77,7 @@ namespace Migradeiro
             }
             log = new Log(logRoute, logFile);
             System.Timers.Timer timer = new System.Timers.Timer();
-            timer.Interval = 120000; // 120 segundos
+            timer.Interval = 30000; // 120 segundos
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
             timer.Start();
         }
@@ -98,6 +98,8 @@ namespace Migradeiro
                 log.WriteLine("No se ha podido abrir la conexión TELNET", "ERROR");
                 log.WriteLine("Mensaje: " + e.Message.ToString(), "ERROR");
             }
+            string s = DateTime.Now.ToShortDateString().Replace("/", "");
+            s += "-" + DateTime.Now.ToShortTimeString().Replace(":", "") + ".txt";
             Thread.Sleep(600);
             tc.Write("ingenieria\n\r");
             Thread.Sleep(600);
@@ -107,17 +109,18 @@ namespace Migradeiro
             Thread.Sleep(600);
             tc.WriteLine("mml\n\r");
             Thread.Sleep(600);
-            using (StreamWriter sw = new StreamWriter(Path.Combine(tempRoute, DateTime.Now.ToShortDateString() + ".txt")))
-            {
-                sw.WriteLine("Fecha de creación del informe: " + DateTime.Now.ToLongDateString());
-                sw.WriteLine("Resultados de consulta de HLR");
-                sw.WriteLine();
-                sw.Write(tc.Read() + "\n\r");
-                log.WriteLine("Autenticado");
-                log.WriteLine("Petición de líneas en espera");
-                //tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
-                tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
-            }
+            StreamWriter sw = new StreamWriter(Path.Combine(tempRoute,s));
+            sw.WriteLine("Fecha de creación del informe: " + DateTime.Now.ToLongDateString());
+            sw.WriteLine("Resultados de consulta de HLR");
+            sw.WriteLine();
+            sw.Write(tc.Read() + "\n\r");
+            log.WriteLine("Autenticado");
+            log.WriteLine("Petición de líneas en espera");
+            //tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
+            tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
+            Thread.Sleep(500);
+            sw.Write(tc.Read());
+            sw.Close();
         }
 
         // Función de parada
