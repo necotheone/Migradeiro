@@ -159,13 +159,12 @@ namespace Migradeiro
                         try
                         {
                             reader = comm.ExecuteReader();
-                            //log.WriteLine("Recuperada información con éxito de la línea " + msisdn);
                         }
                         catch (Exception e)
                         {
                             log.WriteLine("No se ha podido recuperar información de BBDD", "ERROR");
                             log.WriteLine("Error code: " + e.Message, "ERROR");
-                            break;
+                            continue;
                         }
                         //log.WriteLine(reader.HasRows.ToString());
                         if (!reader.HasRows)
