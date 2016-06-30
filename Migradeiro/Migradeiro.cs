@@ -82,6 +82,17 @@ namespace Migradeiro
         ///////////////////////////////////////////////////////////////////////////////////////////////////
         public void OnTimer(object sender, System.Timers.ElapsedEventArgs args)
         {
+            // Función principal de servicio. Cada dos minutos, el timer lanzará un evento que se recoge en esta 
+            // función. Se debe hacer un telnet al HLR y procesar el fichero resultante hacia la BBDD.
+            TelnetConnection tc;
+            try
+            {
+                tc = new TelnetConnection("10.2.144.75", 23);
+            }
+            catch (Exception e)
+            {
+
+            }
         }
 
         // Función de parada
@@ -95,6 +106,14 @@ namespace Migradeiro
                 sw.WriteLine();
                 sw.Close();
             }
+        }
+
+        public static void Log(string logMessage, TextWriter w, int i)
+        {
+            w.Write("\n\nLog Entry({0}): ", i);
+            w.WriteLine("{0} {1}", DateTime.Now.ToLongTimeString(), DateTime.Now.ToLongDateString());
+            w.WriteLine("------> {0}", logMessage);
+            w.WriteLine();
         }
     }
 }

@@ -80,6 +80,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Clases\Log.cs" />
     <Compile Include="Migradeiro.cs">
       <SubType>Component</SubType>
     </Compile>
