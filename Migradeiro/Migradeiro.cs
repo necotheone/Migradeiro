@@ -23,6 +23,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using MinimalisticTelnet;
+using Migradeiro.Clases;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -31,10 +32,11 @@ namespace Migradeiro
     public partial class Migradeiro : ServiceBase
     {
         // Variables globales
-        public string logRoute = @"C:\Ejecutables\Migra2\LOGS\";
-        public string tempRoute = @"C:\Ejecutables\Migra2\Temp\";
-        public string tempFile = "HLRTemp.txt";
-        public string logFile = "MIGRALOG.txt";
+        private string logRoute = @"C:\Ejecutables\Migra2\LOGS\";
+        private string tempRoute = @"C:\Ejecutables\Migra2\Temp\";
+        private string tempFile = "HLRTemp.txt";
+        private string logFile = "MIGRALOG.txt";
+        private Log log;
 
         // Inicia aquí la conexión con la BBDD. Para ello tiene que existir la línea de conexión correspondiente
         // en el fichero de tnsnames.ora
@@ -72,6 +74,7 @@ namespace Migradeiro
                 sw.WriteLine();
                 sw.Close();
             }
+            log = new Log(logRoute, logFile);
             Timer timer = new Timer();
             timer.Interval = 120000; // 120 segundos
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
@@ -91,7 +94,8 @@ namespace Migradeiro
             }
             catch (Exception e)
             {
-
+                log.WriteLine("No se ha podido abrir la conexión TELNET", "ERROR");
+                log.WriteLine("Mensaje: " + e.Message.ToString(), "ERROR");
             }
         }
 
@@ -106,14 +110,6 @@ namespace Migradeiro
                 sw.WriteLine();
                 sw.Close();
             }
-        }
-
-        public static void Log(string logMessage, TextWriter w, int i)
-        {
-            w.Write("\n\nLog Entry({0}): ", i);
-            w.WriteLine("{0} {1}", DateTime.Now.ToLongTimeString(), DateTime.Now.ToLongDateString());
-            w.WriteLine("------> {0}", logMessage);
-            w.WriteLine();
         }
     }
 }
