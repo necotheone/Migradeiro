@@ -25,6 +25,8 @@ using System.Timers;
 using MinimalisticTelnet;
 using Migradeiro.Clases;
 using System.Threading;
+using Oracle.ManagedDataAccess.Client;
+using System.Text.RegularExpressions;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -38,6 +40,7 @@ namespace Migradeiro
         private string logFile = "MIGRALOG.txt";
         private Log log;
         private TelnetConnection tc;
+        OracleConnection conn;
 
         // Inicia aquí la conexión con la BBDD. Para ello tiene que existir la línea de conexión correspondiente
         // en el fichero de tnsnames.ora
@@ -97,6 +100,7 @@ namespace Migradeiro
             {
                 log.WriteLine("No se ha podido abrir la conexión TELNET", "ERROR");
                 log.WriteLine("Mensaje: " + e.Message.ToString(), "ERROR");
+                return;
             }
             string s = DateTime.Now.ToShortDateString().Replace("/", "");
             s += "-" + DateTime.Now.ToShortTimeString().Replace(":", "") + ".txt";
@@ -116,11 +120,59 @@ namespace Migradeiro
             sw.Write(tc.Read() + "\n\r");
             log.WriteLine("Autenticado");
             log.WriteLine("Petición de líneas en espera");
-            //tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
-            tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
+            tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
+            //tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
+            log.WriteLine("Estableciendo conexión con BBDD");
             Thread.Sleep(500);
             sw.Write(tc.Read());
             sw.Close();
+            try
+            {
+                conn = new OracleConnection(@"Data Source=migxunta; User ID=migxunta; Password=migxunta");
+                conn.Open();
+                log.WriteLine("Conexión abierta con BBDD");
+            }
+            catch (Exception e)
+            {
+                log.WriteLine("No se ha podido abrir la conexión con BBDD", "ERROR");
+                log.WriteLine("Error code: " + e.Message, "ERROR");
+                return;
+            }
+            StreamReader sr = new StreamReader(Path.Combine(tempRoute, s));
+            string line;
+            string[] splitted;
+            while ((line = sr.ReadLine()) != null)
+            {
+                if ((line.Length == 0) || (line.Length < 6)) continue;
+                if (line.Substring(0, 6) == "MSISDN")
+                {
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        if (line == "END") break;                   // El HLR termina con un END su respuesta
+                        line = Regex.Replace(line, @"\s+", " ");    // Reemplaza varios espacios por uno solo
+                        splitted = line.Split(' ');                 // Separa la respuesta por espacios
+                                                                    // splitted[0] es el MSISDN
+                        if ((!Regex.IsMatch(splitted[0], "[0-9]"))
+                            || (splitted[0].Length != 11))
+                            break;   // Si no es un número de 11 dígitos, fin.
+                        string sql = "SELECT * FROM MIGHOST_CHEQUEONAV WHERE(MSISDN=:msisdn)";
+                        OracleCommand comm = conn.CreateCommand();
+                        comm.Parameters.Add(new OracleParameter("msisdn", splitted[0]));
+                        comm.CommandText = sql;
+                        OracleDataReader reader = comm.ExecuteReader();
+                        if (!reader.HasRows)
+                        {
+                            sql = "UPDATE MIGHOST_CHEQUEONAV ON ESTADO";
+                            comm.CommandText = sql;
+                            int rowsAffected = comm.ExecuteNonQuery();
+                            log.WriteLine("Se ha añadido el número " + splitted[0].ToString());
+                        }
+                    }
+                }
+            }
+            log.WriteLine("Cerrando conexión con BBDD");
+            conn.Close();
+            sr.Close();
         }
 
         // Función de parada
