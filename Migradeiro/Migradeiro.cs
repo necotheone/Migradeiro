@@ -12,21 +12,15 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.ServiceProcess;
-using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
 using MinimalisticTelnet;
 using Migradeiro.Clases;
 using System.Threading;
-using Oracle.ManagedDataAccess.Client;
 using System.Text.RegularExpressions;
+using System.Data.OracleClient;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -41,6 +35,7 @@ namespace Migradeiro
         private Log log;
         private TelnetConnection tc;
         OracleConnection conn;
+        OracleDataReader reader;
 
         // Inicia aquí la conexión con la BBDD. Para ello tiene que existir la línea de conexión correspondiente
         // en el fichero de tnsnames.ora
@@ -154,18 +149,43 @@ namespace Migradeiro
                                                                     // splitted[0] es el MSISDN
                         if ((!Regex.IsMatch(splitted[0], "[0-9]"))
                             || (splitted[0].Length != 11))
-                            break;   // Si no es un número de 11 dígitos, fin.
+                            break;                                  // Si no es un número de 11 dígitos, fin.
+                        string msisdn = splitted[0];
+                        //log.WriteLine("Procesando " + msisdn);
                         string sql = "SELECT * FROM MIGHOST_CHEQUEONAV WHERE(MSISDN=:msisdn)";
                         OracleCommand comm = conn.CreateCommand();
-                        comm.Parameters.Add(new OracleParameter("msisdn", splitted[0]));
+                        comm.Parameters.Add(new OracleParameter("msisdn", msisdn));
                         comm.CommandText = sql;
-                        OracleDataReader reader = comm.ExecuteReader();
+                        try
+                        {
+                            reader = comm.ExecuteReader();
+                            //log.WriteLine("Recuperada información con éxito de la línea " + msisdn);
+                        }
+                        catch (Exception e)
+                        {
+                            log.WriteLine("No se ha podido recuperar información de BBDD", "ERROR");
+                            log.WriteLine("Error code: " + e.Message, "ERROR");
+                            break;
+                        }
+                        //log.WriteLine(reader.HasRows.ToString());
                         if (!reader.HasRows)
                         {
-                            sql = "UPDATE MIGHOST_CHEQUEONAV ON ESTADO";
-                            comm.CommandText = sql;
-                            int rowsAffected = comm.ExecuteNonQuery();
-                            log.WriteLine("Se ha añadido el número " + splitted[0].ToString());
+                            if (!reader.HasRows)
+                            {
+                                sql = "INSERT INTO MIGHOST_CHEQUEONAV VALUES (:msisdn , \'pendiente\')";
+                                comm.CommandText = sql;
+                                try
+                                {
+                                    int rowsAffected = comm.ExecuteNonQuery();
+                                    log.WriteLine("Se ha añadido el número " + msisdn.ToString());
+                                }
+                                catch (Exception e)
+                                {
+                                    log.WriteLine("Problema al agregar la línea", "ERROR");
+                                    log.WriteLine(e.Message, "ERROR");
+                                    continue;
+                                }
+                            }
                         }
                     }
                 }
