@@ -21,6 +21,7 @@ using System.Linq;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -29,8 +30,8 @@ namespace Migradeiro
     public partial class Migradeiro : ServiceBase
     {
         // Variables globales
-        public string logRoute = @"C:\Migradeiro\Logs\";
-        public string tempRoute = @"C:\Migradeiro\Temp\";
+        public string logRoute = @"C:\Ejecutables\Migra2\LOGS\";
+        public string tempRoute = @"C:\Ejecutables\Migra2\Temp\";
         public string tempFile = "HLRTemp.txt";
         public string logFile = "MIGRALOG.txt";
 
@@ -59,12 +60,40 @@ namespace Migradeiro
         ///////////////////////////////////////////////////////////////////////////////////////////////////
         protected override void OnStart(string[] args)
         {
+            if (!File.Exists(Path.Combine(logRoute, logFile))) {
+                StreamWriter sw = new StreamWriter(Path.Combine(logRoute, logFile));
+                sw.Close();
+            }
+            using (StreamWriter sw = File.AppendText(Path.Combine(logRoute, logFile)))
+            {
+                sw.WriteLine("--------------------------------------------------------------");
+                sw.WriteLine("                       SERVICIO INICIADO                      ");
+                sw.WriteLine();
+                sw.Close();
+            }
+            Timer timer = new Timer();
+            timer.Interval = 120000; // 120 segundos
+            timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
+            timer.Start();
+        }
+
+        // Función de interrupción del temporizador
+        ///////////////////////////////////////////////////////////////////////////////////////////////////
+        public void OnTimer(object sender, System.Timers.ElapsedEventArgs args)
+        {
         }
 
         // Función de parada
         ///////////////////////////////////////////////////////////////////////////////////////////////////
         protected override void OnStop()
         {
+            using (StreamWriter sw = File.AppendText(Path.Combine(logRoute, logFile)))
+            {
+                sw.WriteLine("                        FIN DE SERVICIO                       ");
+                sw.WriteLine("--------------------------------------------------------------");
+                sw.WriteLine();
+                sw.Close();
+            }
         }
     }
 }
