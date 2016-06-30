@@ -75,7 +75,7 @@ namespace Migradeiro
             }
             log = new Log(logRoute, logFile);
             System.Timers.Timer timer = new System.Timers.Timer();
-            timer.Interval = 30000; // 120 segundos
+            timer.Interval = 120000; // 120 segundos
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
             timer.Start();
         }
@@ -115,8 +115,8 @@ namespace Migradeiro
             sw.Write(tc.Read() + "\n\r");
             log.WriteLine("Autenticado");
             log.WriteLine("Petición de líneas en espera");
-            tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
-            //tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
+            //tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
+            tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
             log.WriteLine("Estableciendo conexión con BBDD");
             Thread.Sleep(500);
             sw.Write(tc.Read());
@@ -151,7 +151,6 @@ namespace Migradeiro
                             || (splitted[0].Length != 11))
                             break;                                  // Si no es un número de 11 dígitos, fin.
                         string msisdn = splitted[0];
-                        //log.WriteLine("Procesando " + msisdn);
                         string sql = "SELECT * FROM MIGHOST_CHEQUEONAV WHERE(MSISDN=:msisdn)";
                         OracleCommand comm = conn.CreateCommand();
                         comm.Parameters.Add(new OracleParameter("msisdn", msisdn));
@@ -166,7 +165,6 @@ namespace Migradeiro
                             log.WriteLine("Error code: " + e.Message, "ERROR");
                             continue;
                         }
-                        //log.WriteLine(reader.HasRows.ToString());
                         if (!reader.HasRows)
                         {
                             if (!reader.HasRows)
