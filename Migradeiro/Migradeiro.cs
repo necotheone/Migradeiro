@@ -29,8 +29,10 @@ namespace Migradeiro
     public partial class Migradeiro : ServiceBase
     {
         // Variables globales
-        private string logRoute = @"C:\Ejecutables\Migra2\LOGS\";
-        private string tempRoute = @"C:\Ejecutables\Migra2\Temp\";
+        private string logRoute = @"C:\Ejecutables\Migra2\LOGS\";   //Línea de ruta en servidor MEIGAS
+        private string tempRoute = @"C:\Ejecutables\Migra2\Temp\";  //Línea de ruta en servidor MEIGAS
+        //private string logRoute = @"C:\Servicios\Migra2\LOGS\";   //Línea de ruta en INGENIERÍA
+        //private string tempRoute = @"C:\Servicios\Migra2\Temp\";  //Línea de ruta en INGENIERÍA
         private string logFile = "MIGRALOG.txt";
         private Log log;
         private TelnetConnection tc;
@@ -75,7 +77,7 @@ namespace Migradeiro
             }
             log = new Log(logRoute, logFile);
             System.Timers.Timer timer = new System.Timers.Timer();
-            timer.Interval = 120000; // 120 segundos
+            timer.Interval = 60000; // 120 segundos
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
             timer.Start();
         }
@@ -89,7 +91,7 @@ namespace Migradeiro
             try
             {
                 tc = new TelnetConnection("10.2.144.75", 23);
-                log.WriteLine("Conexión realizada correctamente");
+                //log.WriteLine("Conexión realizada correctamente");
             }
             catch (Exception e)
             {
@@ -113,11 +115,11 @@ namespace Migradeiro
             sw.WriteLine("Resultados de consulta de HLR");
             sw.WriteLine();
             sw.Write(tc.Read() + "\n\r");
-            log.WriteLine("Autenticado");
-            log.WriteLine("Petición de líneas en espera");
-            //tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
-            tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
-            log.WriteLine("Estableciendo conexión con BBDD");
+            //log.WriteLine("Autenticado");
+            //log.WriteLine("Petición de líneas en espera");
+            tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
+            //tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
+            //log.WriteLine("Estableciendo conexión con BBDD");
             Thread.Sleep(500);
             sw.Write(tc.Read());
             sw.Close();
@@ -125,7 +127,7 @@ namespace Migradeiro
             {
                 conn = new OracleConnection(@"Data Source=migxunta; User ID=migxunta; Password=migxunta");
                 conn.Open();
-                log.WriteLine("Conexión abierta con BBDD");
+                //log.WriteLine("Conexión abierta con BBDD");
             }
             catch (Exception e)
             {
@@ -150,8 +152,9 @@ namespace Migradeiro
                         if ((!Regex.IsMatch(splitted[0], "[0-9]"))
                             || (splitted[0].Length != 11))
                             break;                                  // Si no es un número de 11 dígitos, fin.
-                        string msisdn = splitted[0];
-                        string sql = "SELECT * FROM MIGHOST_CHEQUEONAV WHERE(MSISDN=:msisdn)";
+                        string msisdn = splitted[0].Substring(2);
+                        log.WriteLine("Procesando MSISDN " + msisdn);
+                        string sql = "SELECT * FROM MIGHOST_CHEQUEO_REG WHERE (MSISDN=:msisdn) AND (ESTADO=\'Pendiente\')";
                         OracleCommand comm = conn.CreateCommand();
                         comm.Parameters.Add(new OracleParameter("msisdn", msisdn));
                         comm.CommandText = sql;
@@ -165,20 +168,20 @@ namespace Migradeiro
                             log.WriteLine("Error code: " + e.Message, "ERROR");
                             continue;
                         }
-                        if (!reader.HasRows)
+                        if (reader.HasRows)
                         {
-                            if (!reader.HasRows)
+                            if (reader.HasRows)
                             {
-                                sql = "INSERT INTO MIGHOST_CHEQUEONAV VALUES (:msisdn , \'pendiente\')";
+                                sql = "UPDATE MIGHOST_CHEQUEO_REG SET ESTADO=\'registrado\' WHERE MSISDN=:msisdn";
                                 comm.CommandText = sql;
                                 try
                                 {
                                     int rowsAffected = comm.ExecuteNonQuery();
-                                    log.WriteLine("Se ha añadido el número " + msisdn.ToString());
+                                    log.WriteLine("Actualizado estado de " + msisdn.ToString() + " a \"registrado\"");
                                 }
                                 catch (Exception e)
                                 {
-                                    log.WriteLine("Problema al agregar la línea", "ERROR");
+                                    log.WriteLine("Problema al actualizar la línea", "ERROR");
                                     log.WriteLine(e.Message, "ERROR");
                                     continue;
                                 }
@@ -187,7 +190,7 @@ namespace Migradeiro
                     }
                 }
             }
-            log.WriteLine("Cerrando conexión con BBDD");
+            //log.WriteLine("Cerrando conexión con BBDD");
             conn.Close();
             sr.Close();
         }
