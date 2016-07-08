@@ -117,15 +117,15 @@ namespace Migradeiro
             sw.Write(tc.Read() + "\n\r");
             //log.WriteLine("Autenticado");
             //log.WriteLine("Petición de líneas en espera");
-            tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
-            //tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
+            //tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
+            tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
             //log.WriteLine("Estableciendo conexión con BBDD");
             Thread.Sleep(500);
             sw.Write(tc.Read());
             sw.Close();
             try
             {
-                conn = new OracleConnection(@"Data Source=migxunta; User ID=migxunta; Password=migxunta");
+                conn = new OracleConnection(@"Data Source=mighost; User ID=CG923; Password=Mighost2016");
                 conn.Open();
                 //log.WriteLine("Conexión abierta con BBDD");
             }
@@ -153,8 +153,8 @@ namespace Migradeiro
                             || (splitted[0].Length != 11))
                             break;                                  // Si no es un número de 11 dígitos, fin.
                         string msisdn = splitted[0].Substring(2);
-                        log.WriteLine("Procesando MSISDN " + msisdn);
-                        string sql = "SELECT * FROM MIGHOST_CHEQUEO_REG WHERE (MSISDN=:msisdn) AND (ESTADO=\'Pendiente\')";
+                        //log.WriteLine("Procesando MSISDN " + msisdn);
+                        string sql = "SELECT MSISDN,ESTADO FROM MIGHOST.MIGHOST_CHEQUEO_REG WHERE (MSISDN=:msisdn) AND (ESTADO=\'Pendiente\')";
                         OracleCommand comm = conn.CreateCommand();
                         comm.Parameters.Add(new OracleParameter("msisdn", msisdn));
                         comm.CommandText = sql;
@@ -172,7 +172,7 @@ namespace Migradeiro
                         {
                             if (reader.HasRows)
                             {
-                                sql = "UPDATE MIGHOST_CHEQUEO_REG SET ESTADO=\'registrado\' WHERE MSISDN=:msisdn";
+                                sql = "UPDATE MIGHOST.MIGHOST_CHEQUEO_REG SET ESTADO=\'registrado\' WHERE MSISDN=:msisdn";
                                 comm.CommandText = sql;
                                 try
                                 {
