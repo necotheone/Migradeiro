@@ -20,6 +20,7 @@ using Migradeiro.Clases;
 using System.Threading;
 using System.Text.RegularExpressions;
 using System.Data.OracleClient;
+using System.Configuration;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -29,11 +30,22 @@ namespace Migradeiro
     public partial class Migradeiro : ServiceBase
     {
         // Variables globales
-        private string logRoute = @"C:\Ejecutables\Migra2\LOGS\";   //Línea de ruta en servidor MEIGAS
-        private string tempRoute = @"C:\Ejecutables\Migra2\Temp\";  //Línea de ruta en servidor MEIGAS
+        //private string logRoute = @"C:\Ejecutables\Migra2\LOGS\";   //Línea de ruta en servidor MEIGAS
+        //private string tempRoute = @"C:\Ejecutables\Migra2\Temp\";  //Línea de ruta en servidor MEIGAS
         //private string logRoute = @"C:\Servicios\Migra2\LOGS\";   //Línea de ruta en INGENIERÍA
         //private string tempRoute = @"C:\Servicios\Migra2\Temp\";  //Línea de ruta en INGENIERÍA
-        private string logFile = "MIGRALOG.txt";
+        private string logRoute = ConfigurationManager.AppSettings["rutaLog"];   //Línea de ruta en CONF
+        private string tempRoute = ConfigurationManager.AppSettings["rutaTemp"];  //Línea de ruta en CONF
+        private string logFile = ConfigurationManager.AppSettings["logName"];
+        private string tempFile = ConfigurationManager.AppSettings["tempName"];
+        private string hlrip = ConfigurationManager.AppSettings["HLRIP"];
+        private string hlrstrport = ConfigurationManager.AppSettings["HLRPORT"];
+        private string oraConnString = ConfigurationManager.AppSettings["OraConnString"];
+        private string timeInterval = ConfigurationManager.AppSettings["timeInterval"];
+        private string user = ConfigurationManager.AppSettings["USER"];
+        private string password = ConfigurationManager.AppSettings["PASSWORD"];
+        private int intInterval = 120000;
+        private int hlrport;
         private Log log;
         private TelnetConnection tc;
         OracleConnection conn;
@@ -64,6 +76,7 @@ namespace Migradeiro
         ///////////////////////////////////////////////////////////////////////////////////////////////////
         protected override void OnStart(string[] args)
         {
+            int.TryParse(ConfigurationManager.AppSettings["HLRPORT"],out hlrport);
             if (!File.Exists(Path.Combine(logRoute, logFile))) {
                 StreamWriter sw = new StreamWriter(Path.Combine(logRoute, logFile));
                 sw.Close();
@@ -77,7 +90,9 @@ namespace Migradeiro
             }
             log = new Log(logRoute, logFile);
             System.Timers.Timer timer = new System.Timers.Timer();
-            timer.Interval = 60000; // 120 segundos
+            Int32.TryParse(timeInterval, out intInterval);
+            Int32.TryParse(hlrstrport, out hlrport);
+            timer.Interval = intInterval;
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
             timer.Start();
         }
@@ -90,7 +105,7 @@ namespace Migradeiro
             // función. Se debe hacer un telnet al HLR y procesar el fichero resultante hacia la BBDD.
             try
             {
-                tc = new TelnetConnection("10.2.144.75", 23);
+                tc = new TelnetConnection(hlrip, hlrport);
                 //log.WriteLine("Conexión realizada correctamente");
             }
             catch (Exception e)
@@ -99,8 +114,8 @@ namespace Migradeiro
                 log.WriteLine("Mensaje: " + e.Message.ToString(), "ERROR");
                 return;
             }
-            string s = DateTime.Now.ToShortDateString().Replace("/", "");
-            s += "-" + DateTime.Now.ToShortTimeString().Replace(":", "") + ".txt";
+            //string s = DateTime.Now.ToShortDateString().Replace("/", "");
+            //s += "-" + DateTime.Now.ToShortTimeString().Replace(":", "") + ".txt";
             Thread.Sleep(600);
             tc.Write("ingenieria\n\r");
             Thread.Sleep(600);
@@ -110,22 +125,22 @@ namespace Migradeiro
             Thread.Sleep(600);
             tc.WriteLine("mml\n\r");
             Thread.Sleep(600);
-            StreamWriter sw = new StreamWriter(Path.Combine(tempRoute,s));
+            StreamWriter sw = new StreamWriter(Path.Combine(tempRoute,tempFile));
             sw.WriteLine("Fecha de creación del informe: " + DateTime.Now.ToLongDateString());
             sw.WriteLine("Resultados de consulta de HLR");
             sw.WriteLine();
             sw.Write(tc.Read() + "\n\r");
             //log.WriteLine("Autenticado");
             //log.WriteLine("Petición de líneas en espera");
-            //tc.Write("HGICP:NIMSI=ALL;\n\r");                       // Línea de pruebas
-            tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");                //Línea de ejecución
+            tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");
             //log.WriteLine("Estableciendo conexión con BBDD");
             Thread.Sleep(500);
             sw.Write(tc.Read());
             sw.Close();
             try
             {
-                conn = new OracleConnection(@"Data Source=mighost; User ID=CG923; Password=Mighost2016");
+                oraConnString.Replace("USER", user);
+                conn = new OracleConnection(oraConnString + password);
                 conn.Open();
                 //log.WriteLine("Conexión abierta con BBDD");
             }
@@ -135,7 +150,7 @@ namespace Migradeiro
                 log.WriteLine("Error code: " + e.Message, "ERROR");
                 return;
             }
-            StreamReader sr = new StreamReader(Path.Combine(tempRoute, s));
+            StreamReader sr = new StreamReader(Path.Combine(tempRoute, tempFile));
             string line;
             string[] splitted;
             while ((line = sr.ReadLine()) != null)
