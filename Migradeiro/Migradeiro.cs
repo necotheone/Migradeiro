@@ -30,10 +30,6 @@ namespace Migradeiro
     public partial class Migradeiro : ServiceBase
     {
         // Variables globales
-        //private string logRoute = @"C:\Ejecutables\Migra2\LOGS\";   //Línea de ruta en servidor MEIGAS
-        //private string tempRoute = @"C:\Ejecutables\Migra2\Temp\";  //Línea de ruta en servidor MEIGAS
-        //private string logRoute = @"C:\Servicios\Migra2\LOGS\";   //Línea de ruta en INGENIERÍA
-        //private string tempRoute = @"C:\Servicios\Migra2\Temp\";  //Línea de ruta en INGENIERÍA
         private string logRoute = ConfigurationManager.AppSettings["rutaLog"];   //Línea de ruta en CONF
         private string tempRoute = ConfigurationManager.AppSettings["rutaTemp"];  //Línea de ruta en CONF
         private string logFile = ConfigurationManager.AppSettings["logName"];
@@ -53,16 +49,6 @@ namespace Migradeiro
 
         // Inicia aquí la conexión con la BBDD. Para ello tiene que existir la línea de conexión correspondiente
         // en el fichero de tnsnames.ora
-        // La línea de conexión a incluir es la siguiente:
-
-        // MIGXUNTA=
-        //  (DESCRIPTION=
-        //   (ADDRESS=(PROTOCOL=TCP)(HOST=cor003s098)(PORT=1521))
-        //   (CONNECT_DATA=
-        //    (SERVER=DEDICATED)
-        //    (SERVICE_NAME=migxunta)
-        //   )
-        //  )
 
         // Inicializador
         ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +92,6 @@ namespace Migradeiro
             try
             {
                 tc = new TelnetConnection(hlrip, hlrport);
-                //log.WriteLine("Conexión realizada correctamente");
             }
             catch (Exception e)
             {
@@ -114,8 +99,6 @@ namespace Migradeiro
                 log.WriteLine("Mensaje: " + e.Message.ToString(), "ERROR");
                 return;
             }
-            //string s = DateTime.Now.ToShortDateString().Replace("/", "");
-            //s += "-" + DateTime.Now.ToShortTimeString().Replace(":", "") + ".txt";
             Thread.Sleep(600);
             tc.Write("ingenieria\n\r");
             Thread.Sleep(600);
@@ -130,10 +113,7 @@ namespace Migradeiro
             sw.WriteLine("Resultados de consulta de HLR");
             sw.WriteLine();
             sw.Write(tc.Read() + "\n\r");
-            //log.WriteLine("Autenticado");
-            //log.WriteLine("Petición de líneas en espera");
             tc.Write("HGICP:NIMSI=ALL,EXEC;\n\r");
-            //log.WriteLine("Estableciendo conexión con BBDD");
             Thread.Sleep(500);
             sw.Write(tc.Read());
             sw.Close();
@@ -142,7 +122,6 @@ namespace Migradeiro
                 oraConnString.Replace("USER", user);
                 conn = new OracleConnection(oraConnString + password);
                 conn.Open();
-                //log.WriteLine("Conexión abierta con BBDD");
             }
             catch (Exception e)
             {
@@ -168,7 +147,6 @@ namespace Migradeiro
                             || (splitted[0].Length != 11))
                             break;                                  // Si no es un número de 11 dígitos, fin.
                         string msisdn = splitted[0].Substring(2);
-                        //log.WriteLine("Procesando MSISDN " + msisdn);
                         string sql = "SELECT MSISDN,ESTADO FROM MIGHOST.MIGHOST_CHEQUEO_REG WHERE (MSISDN=:msisdn) AND (ESTADO=\'Pendiente\')";
                         OracleCommand comm = conn.CreateCommand();
                         comm.Parameters.Add(new OracleParameter("msisdn", msisdn));
@@ -205,7 +183,6 @@ namespace Migradeiro
                     }
                 }
             }
-            //log.WriteLine("Cerrando conexión con BBDD");
             conn.Close();
             sr.Close();
         }
